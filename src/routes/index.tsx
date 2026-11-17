@@ -6,10 +6,12 @@ import {
   ChevronLeft,
   FilePlus2,
   LogOut,
+  Moon,
   Pin,
   PinOff,
   Search,
   StickyNote,
+  Sun,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { filterNotes, noteDate, notePreview, noteTitle, type Note } from "@/lib/notes";
 import { supabase } from "@/integrations/supabase/client";
+import { useDarkMode } from "@/hooks/use-dark-mode";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,6 +44,7 @@ export const Route = createFileRoute("/")({
 });
 
 function NotesApp() {
+  const { isDark, toggle: toggleDark } = useDarkMode();
   const [user, setUser] = useState<User | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -210,6 +214,16 @@ function NotesApp() {
   if (!user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-note-canvas px-5 py-12 text-note-ink">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+          title={isDark ? "Mode terang" : "Mode gelap"}
+          onClick={toggleDark}
+          className="fixed right-4 top-4"
+        >
+          {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+        </Button>
         <section className="w-full max-w-[430px]">
           <div className="mb-10 flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-md bg-note-accent text-primary-foreground">
@@ -291,9 +305,20 @@ function NotesApp() {
                 <p className="max-w-[215px] truncate text-xs text-note-dim">{user.email}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" aria-label="Keluar dari akun" title="Keluar" onClick={signOut}>
-              <LogOut aria-hidden="true" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+                title={isDark ? "Mode terang" : "Mode gelap"}
+                onClick={toggleDark}
+              >
+                {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="Keluar dari akun" title="Keluar" onClick={signOut}>
+                <LogOut aria-hidden="true" />
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
