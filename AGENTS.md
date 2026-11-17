@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+<!-- AGENT-MEMORY:BEGIN -->
+- Persist user notes in Lovable Cloud, scope reads and writes to the authenticated owner, and use Cloud Auth for email accounts so notes sync across devices.
+<!-- AGENT-MEMORY:END -->
