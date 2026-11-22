@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { filterNotes, noteDate, notePreview, noteTitle, type Note } from "@/lib/notes";
+import { passwordResetRedirect } from "@/lib/password-recovery";
 import { supabase } from "@/integrations/supabase/client";
 import { useDarkMode } from "@/hooks/use-dark-mode";
 
@@ -50,7 +51,7 @@ function NotesApp() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingNotes, setLoadingNotes] = useState(false);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [authPending, setAuthPending] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
   const [authError, setAuthError] = useState("");
@@ -109,6 +110,19 @@ function NotesApp() {
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
+
+    if (authMode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: passwordResetRedirect(window.location.origin),
+      });
+      if (error) {
+        setAuthError("Tautan reset belum bisa dikirim. Coba lagi nanti.");
+      } else {
+        setAuthMessage("Jika email terdaftar, tautan untuk membuat kata sandi baru akan dikirim.");
+      }
+      setAuthPending(false);
+      return;
+    }
 
     if (authMode === "signup") {
       const { data, error } = await supabase.auth.signUp({ email, password });
@@ -235,56 +249,105 @@ function NotesApp() {
           <p className="mt-3 text-base text-note-dim">
             Tempat tenang untuk menyimpan ide dan hal-hal yang ingin kamu ingat.
           </p>
-          <div className="mt-9 flex border-b border-note-line" role="tablist" aria-label="Jenis akun">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={authMode === "signin"}
-              onClick={() => {
-                setAuthMode("signin");
-                setAuthError("");
-                setAuthMessage("");
-              }}
-              className={`border-b-2 px-1 pb-3 text-sm font-medium ${authMode === "signin" ? "border-note-accent text-note-ink" : "border-transparent text-note-dim"}`}
-            >
-              Masuk
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={authMode === "signup"}
-              onClick={() => {
-                setAuthMode("signup");
-                setAuthError("");
-                setAuthMessage("");
-              }}
-              className={`ml-6 border-b-2 px-1 pb-3 text-sm font-medium ${authMode === "signup" ? "border-note-accent text-note-ink" : "border-transparent text-note-dim"}`}
-            >
-              Buat akun
-            </button>
-          </div>
+          {authMode === "forgot" ? (
+            <div className="mb-6 mt-9">
+              <h2 className="text-xl font-semibold">Lupa kata sandi?</h2>
+              <p className="mt-2 text-sm leading-6 text-note-dim">
+                Masukkan email akunmu untuk menerima tautan pemulihan.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-9 flex border-b border-note-line" role="tablist" aria-label="Jenis akun">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === "signin"}
+                onClick={() => {
+                  setAuthMode("signin");
+                  setAuthError("");
+                  setAuthMessage("");
+                }}
+                className={`border-b-2 px-1 pb-3 text-sm font-medium ${authMode === "signin" ? "border-note-accent text-note-ink" : "border-transparent text-note-dim"}`}
+              >
+                Masuk
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === "signup"}
+                onClick={() => {
+                  setAuthMode("signup");
+                  setAuthError("");
+                  setAuthMessage("");
+                }}
+                className={`ml-6 border-b-2 px-1 pb-3 text-sm font-medium ${authMode === "signup" ? "border-note-accent text-note-ink" : "border-transparent text-note-dim"}`}
+              >
+                Buat akun
+              </button>
+            </div>
+          )}
           <form className="mt-6 space-y-4" onSubmit={handleAuth}>
             <label className="block space-y-2 text-sm font-medium" htmlFor="email">
               Email
               <Input id="email" name="email" type="email" autoComplete="email" required placeholder="nama@email.com" />
             </label>
-            <label className="block space-y-2 text-sm font-medium" htmlFor="password">
-              Kata sandi
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete={authMode === "signin" ? "current-password" : "new-password"}
-                required
-                placeholder="••••••••"
-              />
-            </label>
+            {authMode !== "forgot" && (
+              <label className="block space-y-2 text-sm font-medium" htmlFor="password">
+                Kata sandi
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete={authMode === "signin" ? "current-password" : "new-password"}
+                  required
+                  placeholder="••••••••"
+                />
+              </label>
+            )}
             {authError && <p role="alert" className="text-sm text-destructive">{authError}</p>}
             {authMessage && <p role="status" className="text-sm text-note-dim">{authMessage}</p>}
             <Button type="submit" className="w-full" disabled={authPending}>
-              {authPending ? "Sebentar…" : authMode === "signin" ? "Masuk ke catatan" : "Buat akun"}
+              {authPending
+                ? "Sebentar…"
+                : authMode === "forgot"
+                  ? "Kirim tautan pemulihan"
+                  : authMode === "signin"
+                    ? "Masuk ke catatan"
+                    : "Buat akun"}
             </Button>
           </form>
+          {authMode === "signin" && (
+            <div className="mt-3 flex justify-center">
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto px-1 py-1 text-sm text-note-dim"
+                onClick={() => {
+                  setAuthMode("forgot");
+                  setAuthError("");
+                  setAuthMessage("");
+                }}
+              >
+                Lupa kata sandi?
+              </Button>
+            </div>
+          )}
+          {authMode === "forgot" && (
+            <div className="mt-3 flex justify-center">
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto px-1 py-1 text-sm text-note-dim"
+                onClick={() => {
+                  setAuthMode("signin");
+                  setAuthError("");
+                  setAuthMessage("");
+                }}
+              >
+                Kembali ke masuk
+              </Button>
+            </div>
+          )}
           <p className="mt-5 text-center text-xs text-note-dim">Catatanmu tersimpan aman di akunmu.</p>
         </section>
       </main>
